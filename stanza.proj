@@ -1,0 +1,19 @@
+include? ".slm/stanza.proj"  ; Dependencies
+pkg-cache: ".slm/pkg-cache"
+
+package cairo defined-in "src/lib-cairo.stanza"
+package cairo requires :
+  ccflags : ("-lcairo")
+packages cairo/* defined-in "src/cairo/"
+
+build main:
+  inputs: 
+    cairo
+    cairo/draw
+  pkg: ".slm/pkgs"
+
+include? "stanza-library.proj"
+build test:
+  inputs: cairo/tests
+  pkg: ".slm/pkgs"
+  o: "cairo-tests"

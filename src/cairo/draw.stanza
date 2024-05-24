@@ -1,0 +1,10 @@
+defpackage cairo/draw :
+  import core
+  import collections
+  import cairo
+
+public defn set-font-size (s:CairoSurface, size:Float) -> False :
+  val m = CairoMatrix()
+  set-xx(m, to-double(size))
+  set-yy(m, (- to-double(size)))
+  set-font-matrix(s, m)  

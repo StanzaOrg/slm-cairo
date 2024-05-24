@@ -1,0 +1,4 @@
+package cairo/draw defined-in "cairo-draw.stanza"
+package cairo defined-in "lib-cairo.stanza"
+package cairo requires :
+  ccflags: {GTK_DEPENDENCIES}

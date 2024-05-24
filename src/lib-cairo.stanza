@@ -1,0 +1,386 @@
+defpackage cairo :
+  import core
+  import collections
+
+;============================================================
+;====================== Externs =============================
+;============================================================
+
+public lostanza deftype cairo-surface-t
+public lostanza deftype cairo-t
+public lostanza deftype cairo-font-options-t
+public lostanza deftype cairo-matrix-t
+
+lostanza deftype CairoMatrix :
+  var xx: double
+  var yx: double
+  var xy: double
+  var yy: double
+  var x0: double
+  var y0: double
+
+lostanza deftype FontExtents :
+  var ascent:double
+  var descent:double
+  var height:double
+  var max-x-advance:double
+  var max-y-advance:double
+
+lostanza deftype TextExtents :
+  var x-bearing:double
+  var y-bearing:double
+  var width:double
+  var height:double
+  var x-advance:double
+  var y-advance:double
+
+lostanza val CAIRO-FORMAT-INVALID:int = -1
+lostanza val CAIRO-FORMAT-ARGB32:int = 0
+lostanza val CAIRO-FORMAT-RGB24:int = 1
+lostanza val CAIRO-FORMAT-A8:int = 2
+lostanza val CAIRO-FORMAT-A1:int = 3
+lostanza val CAIRO-FORMAT-RGB16-565:int = 4
+lostanza val CAIRO-FORMAT-RGB30:int = 5
+
+lostanza val CAIRO-FONT-SLANT-NORMAL:int = 0
+lostanza val CAIRO-FONT-SLANT-ITALIC:int = 1
+lostanza val CAIRO-FONT-SLANT-OBLIQUE:int = 2
+
+lostanza val CAIRO-FONT-WEIGHT-NORMAL:int = 0
+lostanza val CAIRO-FONT-WEIGHT-BOLD:int = 1
+
+lostanza val CAIRO-ANTIALIAS-DEFAULT:int = 0
+lostanza val CAIRO-ANTIALIAS-NONE:int = 1
+lostanza val CAIRO-ANTIALIAS-GRAY:int = 2
+lostanza val CAIRO-ANTIALIAS-SUBPIXEL:int = 3
+lostanza val CAIRO-ANTIALIAS-FAST:int = 4
+lostanza val CAIRO-ANTIALIAS-GOOD:int = 5
+lostanza val CAIRO-ANTIALIAS-BEST:int = 6
+
+extern cairo_image_surface_create: (int, int, int) -> ptr<cairo-surface-t>
+extern cairo_surface_destroy: (ptr<cairo-surface-t>) -> int
+extern cairo_surface_write_to_png: (ptr<cairo-surface-t>, ptr<byte>) -> int
+
+extern cairo_font_options_create: () -> ptr<cairo-font-options-t>
+extern cairo_font_options_destroy: ptr<cairo-font-options-t> -> int
+extern cairo_font_options_set_antialias: (ptr<cairo-font-options-t>, int) -> int
+
+extern cairo_create: ptr<cairo-surface-t> -> ptr<cairo-t>
+extern cairo_destroy: (ptr<cairo-t>) -> int
+extern cairo_set_font_size: (ptr<cairo-t>, double) -> int
+extern cairo_set_antialias: (ptr<cairo-t>, int) -> int
+extern cairo_set_font_options: (ptr<cairo-t>, ptr<cairo-font-options-t>) -> int
+extern cairo_select_font_face: (ptr<cairo-t>, ptr<byte>, int, int) -> int
+extern cairo_set_source_rgba: (ptr<cairo-t>, double, double, double, double) -> int
+extern cairo_new_path: (ptr<cairo-t>) -> int ;void
+extern cairo_move_to: (ptr<cairo-t>, double, double) -> int
+extern cairo_line_to: (ptr<cairo-t>, double, double) -> int
+extern cairo_rel_line_to: (ptr<cairo-t>, double, double) -> int
+extern cairo_set_line_width: (ptr<cairo-t>, double) -> int
+extern cairo_rectangle: (ptr<cairo-t>, double, double, double, double) -> int
+extern cairo_arc: (ptr<cairo-t>, double, double, double, double, double) -> int
+extern cairo_arc_negative: (ptr<cairo-t>, double, double, double, double, double) -> int
+extern cairo_stroke: (ptr<cairo-t>) -> int
+extern cairo_fill: (ptr<cairo-t>) -> int
+extern cairo_show_text: (ptr<cairo-t>, ptr<byte>) -> int
+extern cairo_paint: (ptr<cairo-t>) -> int
+extern cairo_font_extents: (ptr<cairo-t>, ptr<FontExtents>) -> int
+extern cairo_text_extents: (ptr<cairo-t>, ptr<byte>, ptr<TextExtents>) -> int
+extern cairo_device_to_user_distance: (ptr<cairo-t>, ptr<double>, ptr<double>) -> int
+extern cairo_set_dash: (ptr<cairo-t>, ptr<double>, int, double) -> int
+extern cairo_translate: (ptr<cairo-t>, double, double) -> int
+extern cairo_scale: (ptr<cairo-t>, double, double) -> int
+extern cairo_rotate: (ptr<cairo-t>, double) -> int
+extern cairo_save: (ptr<cairo-t>) -> int  ; void
+extern cairo_restore: (ptr<cairo-t>) -> int  ; void
+extern cairo_set_font_matrix: (ptr<cairo-t>, ptr<cairo-matrix-t>) -> int ;void
+extern cairo_get_font_matrix: (ptr<cairo-t>, ptr<cairo-matrix-t>) -> int ;void
+
+;============================================================
+;===================== Wrapper ==============================
+;============================================================
+
+public deftype FontSlant
+public defstruct NormalSlant <: FontSlant
+public defstruct ItalicSlant <: FontSlant
+public defstruct ObliqueSlant <: FontSlant
+
+public deftype FontWeight
+public defstruct NormalWeight <: FontWeight
+public defstruct BoldWeight <: FontWeight
+
+public deftype Antialias
+public defstruct DefaultAntialias <: Antialias
+public defstruct NoneAntialias <: Antialias
+public defstruct GrayAntialias <: Antialias
+public defstruct SubpixelAntialias <: Antialias
+public defstruct FastAntialias <: Antialias
+public defstruct GoodAntialias <: Antialias
+public defstruct BestAntialias <: Antialias
+
+lostanza defn enum-value (s:ref<Antialias>) -> int :
+  match(s) :
+    (s:ref<DefaultAntialias>) : return CAIRO-ANTIALIAS-DEFAULT
+    (s:ref<NoneAntialias>) : return CAIRO-ANTIALIAS-NONE
+    (s:ref<GrayAntialias>) : return CAIRO-ANTIALIAS-GRAY
+    (s:ref<SubpixelAntialias>) : return CAIRO-ANTIALIAS-SUBPIXEL
+    (s:ref<FastAntialias>) : return CAIRO-ANTIALIAS-FAST
+    (s:ref<GoodAntialias>) : return CAIRO-ANTIALIAS-GOOD
+    (s:ref<BestAntialias>) : return CAIRO-ANTIALIAS-BEST
+
+lostanza defn enum-value (s:ref<FontSlant>) -> int :
+  match(s) :
+    (s:ref<NormalSlant>) : return CAIRO-FONT-SLANT-NORMAL
+    (s:ref<ItalicSlant>) : return CAIRO-FONT-SLANT-ITALIC
+    (s:ref<ObliqueSlant>) : return CAIRO-FONT-SLANT-OBLIQUE
+
+lostanza defn enum-value (s:ref<FontWeight>) -> int :
+  match(s) :
+    (s:ref<NormalWeight>) : return CAIRO-FONT-WEIGHT-NORMAL
+    (s:ref<BoldWeight>) : return CAIRO-FONT-WEIGHT-BOLD
+
+public lostanza deftype CairoSurface <: Resource :  
+  surface:ptr<cairo-surface-t>
+  var painter:ptr<cairo-t>
+  var font-options:ptr<cairo-font-options-t>
+  flip-y?:int
+  var height:int
+
+public lostanza defn CairoSurface (width:ref<Int>, height:ref<Int>, flip-y?:ref<True|False>) -> ref<CairoSurface> :
+  val surface = call-c cairo_image_surface_create(CAIRO-FORMAT-ARGB32, width.value, height.value)
+  val painter = call-c cairo_create(surface)
+  var fy:int = 0
+  if flip-y? == true : fy = 1
+  return new CairoSurface{surface, painter, null, fy, height.value}
+
+public lostanza defn clear (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_paint(s.painter)
+  return false
+
+public lostanza defn set-color (s:ref<CairoSurface>, r:ref<Float>, g:ref<Float>, b:ref<Float>, a:ref<Float>) -> ref<False> :
+  call-c cairo_set_source_rgba(s.painter, r.value, g.value, b.value, a.value)
+  return false
+
+public defn set-color (s:CairoSurface, r:Float, g:Float, b:Float) :
+  set-color(s, r, g, b, 1.0f)
+
+public lostanza defn set-font-size (s:ref<CairoSurface>, size:ref<Float>) -> ref<False> :
+  call-c cairo_set_font_size(s.painter, size.value)
+  return false
+
+public lostanza defn set-font-matrix (s:ref<CairoSurface>, m:ref<CairoMatrix>) -> ref<False> :
+  val p = addr!([m]) as ptr<cairo-matrix-t>
+  call-c cairo_set_font_matrix(s.painter, p)
+  return false
+
+public lostanza defn get-font-matrix (s:ref<CairoSurface>, m:ref<CairoMatrix>) -> ref<False> :
+  val p = addr!([m]) as ptr<cairo-matrix-t>
+  call-c cairo_get_font_matrix(s.painter, p)
+  return false
+
+public lostanza defn set-font (s:ref<CairoSurface>, name:ref<String>,
+                               slant:ref<FontSlant>, weight:ref<FontWeight>) -> ref<False> :
+  call-c cairo_select_font_face(s.painter, addr!(name.chars), enum-value(slant), enum-value(weight))
+  return false
+
+public lostanza defn set-antialias (s:ref<CairoSurface>, antialias:ref<Antialias>) -> ref<False> :
+  call-c cairo_set_antialias(s.painter, enum-value(antialias))
+  return false
+
+public lostanza defn set-font-antialias (s:ref<CairoSurface>, antialias:ref<Antialias>) -> ref<False> :
+  if s.font-options != null : call-c cairo_font_options_destroy(s.font-options)
+  s.font-options = call-c cairo_font_options_create()
+  call-c cairo_font_options_set_antialias(s.font-options, enum-value(antialias))
+  call-c cairo_set_font_options(s.painter, s.font-options)
+  return false
+
+public lostanza defn show-text (s:ref<CairoSurface>, text:ref<String>) -> ref<False> :
+  call-c cairo_show_text(s.painter, addr!(text.chars))
+  return false
+
+lostanza defn preprocess-y (s:ref<CairoSurface>, y:float) -> float :
+  if s.flip-y? : return (s.height as float) - y
+  else : return y
+
+lostanza defn preprocess-dy (s:ref<CairoSurface>, y:float) -> float :
+  if s.flip-y? : return (- y)
+  else : return y
+
+lostanza defn preprocess-theta (s:ref<CairoSurface>, th:float) -> float :
+  if s.flip-y? : return (- th)
+  else : return th
+
+public lostanza defn new-path (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_new_path(s.painter)
+  return false
+
+public lostanza defn move-to (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>) -> ref<False> :
+  call-c cairo_move_to(s.painter, x.value, preprocess-y(s,y.value))
+  return false
+
+public lostanza defn line-to (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>) -> ref<False> :
+  call-c cairo_line_to(s.painter, x.value, preprocess-y(s,y.value))
+  return false
+
+public lostanza defn rel-line-to (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>) -> ref<False> :
+  call-c cairo_rel_line_to(s.painter, x.value, preprocess-dy(s,y.value))
+  return false
+
+public lostanza defn set-line-width (s:ref<CairoSurface>, w:ref<Float>) -> ref<False> :
+  call-c cairo_set_line_width(s.painter, w.value)
+  return false
+
+public lostanza defn rectangle (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>, w:ref<Float>, h:ref<Float>) -> ref<False> :
+  if s.flip-y? : call-c cairo_rectangle(s.painter, x.value, preprocess-y(s, y.value + h.value), w.value, h.value)
+  else : call-c cairo_rectangle(s.painter, x.value, y.value, w.value, h.value)
+  return false
+
+public lostanza defn arc (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>, r:ref<Float>, theta1:ref<Float>, theta2:ref<Float>) -> ref<False> :
+  if s.flip-y? :
+    call-c cairo_arc_negative(s.painter,
+                              x.value, preprocess-y(s,y.value),
+                              r.value, (- theta1.value), (- theta2.value))
+  else :
+    call-c cairo_arc(s.painter,
+                     x.value, y.value,
+                     r.value, theta1.value, theta2.value)
+  return false
+
+public lostanza defn arc-negative (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>, r:ref<Float>, theta1:ref<Float>, theta2:ref<Float>) -> ref<False> :
+  if s.flip-y? :
+    call-c cairo_arc(s.painter,
+                     x.value, preprocess-y(s,y.value),
+                     r.value, (- theta1.value), (- theta2.value))
+  else :
+    call-c cairo_arc_negative(s.painter,
+                              x.value, y.value,
+                              r.value, theta1.value, theta2.value)
+  return false
+
+public lostanza defn stroke (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_stroke(s.painter)
+  return false
+
+public lostanza defn fill (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_fill(s.painter)
+  return false
+
+public lostanza defn save-png (s:ref<CairoSurface>, filename:ref<String>) -> ref<False> :
+  call-c cairo_surface_write_to_png(s.surface, addr!(filename.chars))
+  return false
+
+public lostanza defn font-extents (s:ref<CairoSurface>) -> ref<FontExtents> :
+  val fe = new FontExtents{0.0, 0.0, 0.0, 0.0, 0.0}
+  call-c cairo_font_extents(s.painter, addr!([fe]))
+  return fe
+
+public lostanza defn text-extents (s:ref<CairoSurface>, text:ref<String>) -> ref<TextExtents> :
+  val te = new TextExtents{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+  call-c cairo_text_extents(s.painter, addr!(text.chars), addr!([te]))
+  return te
+
+lostanza var DASH-BUFFER:double
+public lostanza defn set-dash (s:ref<CairoSurface>, length:ref<Float>) -> ref<False> :
+  DASH-BUFFER = length.value
+  call-c cairo_set_dash(s.painter, addr(DASH-BUFFER), 1, 0.0)
+  return false
+
+lostanza defmethod free (s:ref<CairoSurface>) -> ref<False> :
+  if s.font-options != null : call-c cairo_font_options_destroy(s.font-options)
+  call-c cairo_destroy(s.painter)
+  call-c cairo_surface_destroy(s.surface)
+  return false
+
+public lostanza defn translate (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>) -> ref<False> :
+  call-c cairo_translate(s.painter, x.value, preprocess-dy(s,y.value))
+  return false
+  
+public lostanza defn scale (s:ref<CairoSurface>, x:ref<Float>, y:ref<Float>) -> ref<False> :
+  if s.flip-y? :
+    call-c cairo_translate(s.painter, 0.0, s.height as double)
+    call-c cairo_scale(s.painter, x.value, y.value)
+    call-c cairo_translate(s.painter, 0.0, (- s.height as double))
+  else :
+    call-c cairo_scale(s.painter, x.value, y.value)
+  return false
+  
+public lostanza defn rotate (s:ref<CairoSurface>, th:ref<Float>) -> ref<False> :
+  if s.flip-y? :
+    call-c cairo_translate(s.painter, 0.0, s.height as double)
+    call-c cairo_rotate(s.painter, (- th.value))
+    call-c cairo_translate(s.painter, 0.0, (- s.height as double))
+  else :
+    call-c cairo_rotate(s.painter, th.value)
+  return false
+
+public lostanza defn cairo-save (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_save(s.painter)
+  return false
+
+public lostanza defn cairo-restore (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_restore(s.painter)
+  return false
+
+public lostanza defn draw-axes (s:ref<CairoSurface>) -> ref<False> :
+  call-c cairo_set_line_width(s.painter, 5.0f)
+  call-c cairo_set_source_rgba(s.painter, 1.0f, 0.0f, 0.0f, 1.0f)
+  call-c cairo_move_to(s.painter, 0.0f, 0.0f)
+  call-c cairo_rel_line_to(s.painter, 200.0f, 0.0f)
+  call-c cairo_stroke(s.painter)
+  call-c cairo_set_source_rgba(s.painter, 0.0f, 1.0f, 0.0f, 1.0f)
+  call-c cairo_move_to(s.painter, 0.0f, 0.0f)
+  call-c cairo_rel_line_to(s.painter, 0.0f, 200.0f)
+  call-c cairo_stroke(s.painter)
+  return false
+
+#for (xx in [xx, yx, xy, yy, x0, y0]
+      set-xx in [set-xx, set-yx, set-xy, set-yy, set-x0, set-y0]) :
+  public lostanza defn xx (m:ref<CairoMatrix>) -> ref<Double> :
+    return new Double{m.xx}
+  public lostanza defn set-xx (m:ref<CairoMatrix>, d:ref<Double>) -> ref<False> :
+    m.xx = d.value
+    return false
+
+public lostanza defn CairoMatrix () -> ref<CairoMatrix> :
+  return new CairoMatrix{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+
+public lostanza defn ascent (fe:ref<FontExtents>) -> ref<Float> :
+  return new Float{fe.ascent as float}
+
+public lostanza defn descent (fe:ref<FontExtents>) -> ref<Float> :
+  return new Float{fe.descent as float}
+
+public lostanza defn height (fe:ref<FontExtents>) -> ref<Float> :
+  return new Float{fe.height as float}
+
+public lostanza defn max-x-advance (fe:ref<FontExtents>) -> ref<Float> :
+  return new Float{fe.max-x-advance as float}
+
+public lostanza defn max-y-advance (fe:ref<FontExtents>) -> ref<Float> :
+  return new Float{fe.max-y-advance as float}
+
+public lostanza defn x-bearing (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.x-bearing as float}
+
+public lostanza defn y-bearing (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.y-bearing as float}
+
+public lostanza defn width (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.width as float}
+
+public lostanza defn height (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.height as float}
+
+public lostanza defn x-advance (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.x-advance as float}
+
+public lostanza defn y-advance (te:ref<TextExtents>) -> ref<Float> :
+  return new Float{te.y-advance as float}
+
+defmethod print (o:OutputStream, fe:FontExtents) :
+  print(o, "FontExtents(ascent = %_, descent = %_, height = %_, max-x-advance = %_, max-y-advance = %_)" % [
+    ascent(fe), descent(fe), height(fe), max-x-advance(fe), max-y-advance(fe)])
+
+defmethod print (o:OutputStream, te:TextExtents) :
+  print(o, "TextExtents(x-bearing = %_, y-bearing = %_, width = %_, height = %_, x-advance = %_, y-advance = %_)" % [
+    x-bearing(te), y-bearing(te), width(te), height(te), x-advance(te), y-advance(te)])
